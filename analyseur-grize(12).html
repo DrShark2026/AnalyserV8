@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Analyseur d'opérations logico-discursives — Grize, Charconnet 1999</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E9E7DD;
+    --paper-2:#F3F1E8;
+    --ink:#26312B;
+    --ink-soft:#5B655E;
+    --line:#C9C5B6;
+    --theme-c:#2F5D50;
+    --theme-bg:#DCE8E2;
+    --phore-c:#8A4A24;
+    --phore-bg:#EFDECD;
+    --accent:#7A6A45;
+    --cand:#B8942F;
+    --risk-high-bg:#F7D9D9;
+    --risk-high-c:#A32D2D;
+    --risk-med-bg:#F1E6C8;
+    --risk-med-c:#8A6A1E;
+    --fam-g:#4A5D8A;
+    --fam-g-bg:#DFE3EF;
+    --fam-r:#6B4A8A;
+    --fam-r-bg:#E6DFEF;
+    --fam-t:#3D7A6C;
+    --fam-t-bg:#DCEBE6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Source Serif 4', Georgia, serif;line-height:1.6;padding:2.5rem 1.5rem 4rem;}
+  .wrap{max-width:800px;margin:0 auto;}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;}
+  h1{font-size:1.5rem;font-weight:600;margin:0 0 .25rem;letter-spacing:.01em;}
+  .sub{color:var(--ink-soft);font-size:.95rem;margin:0 0 1.5rem;font-style:italic;}
+  .lang-toggle{display:flex;gap:.3rem;flex-shrink:0;}
+  .lang-toggle button{font-family:'JetBrains Mono', monospace;font-size:.78rem;padding:.3rem .55rem;border:1px solid var(--line);border-radius:3px;background:var(--paper-2);color:var(--ink-soft);cursor:pointer;}
+  .lang-toggle button.on{background:var(--ink);color:var(--paper-2);border-color:var(--ink);}
+
+  .notions{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+  .notion-field label{display:block;font-size:.8rem;color:var(--ink-soft);margin-bottom:.35rem;}
+  .notion-field input{width:100%;font-family:'JetBrains Mono', monospace;font-size:.9rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:3px;background:var(--paper-2);color:var(--ink);}
+  .notion-field.theme input{border-left:3px solid var(--theme-c);}
+  .notion-field.phore input{border-left:3px solid var(--phore-c);}
+
+  textarea{width:100%;min-height:120px;font-family:'Source Serif 4', Georgia, serif;font-size:1.02rem;line-height:1.65;padding:1rem;border:1px solid var(--line);border-radius:4px;background:var(--paper-2);color:var(--ink);resize:vertical;}
+  .row{display:flex;gap:.6rem;align-items:center;margin-top:.75rem;flex-wrap:wrap;}
+  button{font-family:'Source Serif 4', Georgia, serif;font-size:.9rem;padding:.5rem 1rem;border:1px solid var(--ink-soft);border-radius:3px;background:transparent;color:var(--ink);cursor:pointer;}
+  button:hover{background:var(--paper-2);}
+  button.primary{background:var(--ink);color:var(--paper-2);border-color:var(--ink);}
+  button.primary:hover{background:#39463F;}
+  button.ghost{border-color:var(--line);color:var(--ink-soft);}
+  button.detect{border-color:var(--cand);color:var(--cand);}
+  .example-link{background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:.85rem;padding:0;}
+
+  .stage{margin-top:2rem;display:none;}
+  .stage.active{display:block;}
+
+  .legend{font-size:.78rem;color:var(--ink-soft);margin:.75rem 0 1rem;display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center;}
+  .legend .sw{display:inline-block;width:.7em;height:.7em;border-radius:2px;margin-right:.35em;vertical-align:-1px;}
+  .sw.cand{border:1.5px dashed var(--cand);}
+  .sw.th{background:var(--theme-bg);}
+  .sw.ph{background:var(--phore-bg);}
+
+  .rendered{font-size:1.05rem;line-height:2;padding:1.25rem 1.4rem;background:var(--paper-2);border:1px solid var(--line);border-radius:4px;}
+  .tok{cursor:pointer;border-radius:2px;padding:1px 0;}
+  .tok:hover{background:rgba(0,0,0,.06);}
+  .tok.sel{background:#D9CFA0;}
+  .tok.tag-theme{background:var(--theme-bg);color:var(--theme-c);}
+  .tok.tag-phore{background:var(--phore-bg);color:var(--phore-c);}
+  .tok.cand{border-bottom:2px dashed var(--cand);}
+  .tok.cand.first::after{content:attr(data-op-label);font-family:'JetBrains Mono', monospace;font-size:.65rem;color:var(--cand);vertical-align:super;margin-left:2px;}
+  .tok.cand-ai{border-bottom:2px solid var(--fam-r);}
+  .tok.cand-ai.first::after{content:attr(data-op-label);font-family:'JetBrains Mono', monospace;font-size:.65rem;color:var(--fam-r);vertical-align:super;margin-left:2px;}
+  .ai-status{font-size:.8rem;color:var(--ink-soft);margin-top:.5rem;font-style:italic;}
+  .risk-badge.ai-src{border:1px solid var(--fam-r);}
+
+  .tagbar{margin-top:1rem;padding:1rem;border:1px dashed var(--line);border-radius:4px;background:var(--paper-2);display:none;}
+  .tagbar.active{display:block;}
+  .tagbar .sel-preview{font-family:'JetBrains Mono', monospace;font-size:.85rem;color:var(--ink-soft);margin-bottom:.75rem;}
+  .tagbar .sel-preview b{color:var(--ink);}
+  .choice-group{margin-bottom:.75rem;}
+  .choice-group .label{font-size:.78rem;color:var(--ink-soft);margin-bottom:.4rem;}
+  .chips{display:flex;gap:.4rem;flex-wrap:wrap;}
+  .chip{font-family:'JetBrains Mono', monospace;font-size:.82rem;padding:.3rem .6rem;border:1px solid var(--line);border-radius:12px;cursor:pointer;background:var(--paper);}
+  .chip.on{background:var(--ink);color:var(--paper-2);border-color:var(--ink);}
+  .chip.on.theme-on{background:var(--theme-c);border-color:var(--theme-c);}
+  .chip.on.phore-on{background:var(--phore-c);border-color:var(--phore-c);}
+  .op-desc{font-size:.78rem;color:var(--ink-soft);margin-top:.4rem;min-height:1.2em;}
+  .op-family-group{margin-bottom:.55rem;}
+  .op-family-label{font-size:.72rem;padding:.1rem .4rem;border-radius:3px;display:inline-block;margin-bottom:.35rem;}
+  .op-family-label.g{background:var(--fam-g-bg);color:var(--fam-g);}
+  .op-family-label.r{background:var(--fam-r-bg);color:var(--fam-r);}
+  .op-family-label.t{background:var(--fam-t-bg);color:var(--fam-t);}
+
+  .classes{margin-top:2.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+  .cl-col h2{font-size:.95rem;font-weight:600;margin:0 0 .1rem;font-family:'JetBrains Mono', monospace;}
+  .cl-col.theme h2{color:var(--theme-c);}
+  .cl-col.phore h2{color:var(--phore-c);}
+  .cl-col .notion-name{font-size:.78rem;color:var(--ink-soft);margin-bottom:.75rem;font-family:'JetBrains Mono', monospace;}
+  .entry{display:flex;gap:.5rem;align-items:baseline;padding:.4rem 0;border-bottom:1px solid var(--line);font-size:.92rem;flex-wrap:wrap;}
+  .entry:last-child{border-bottom:none;}
+  .op-badge{font-family:'JetBrains Mono', monospace;font-size:.75rem;font-weight:600;min-width:1.8em;text-align:center;}
+  .cl-col.theme .op-badge{color:var(--theme-c);}
+  .cl-col.phore .op-badge{color:var(--phore-c);}
+  .empty-hint{color:var(--ink-soft);font-size:.85rem;font-style:italic;}
+  .set-line{margin-top:1rem;font-family:'JetBrains Mono', monospace;font-size:.82rem;color:var(--ink-soft);line-height:1.7;word-break:break-word;}
+  .instructions{font-size:.85rem;color:var(--ink-soft);margin-top:.6rem;}
+
+  .risk-badge{display:inline-flex;align-items:center;font-family:'JetBrains Mono', monospace;font-size:.66rem;padding:.15rem .45rem;border-radius:8px;margin-left:.5rem;white-space:nowrap;}
+  .risk-badge.high{background:var(--risk-high-bg);color:var(--risk-high-c);}
+  .risk-badge.medium{background:var(--risk-med-bg);color:var(--risk-med-c);}
+  .risk-fb-btn{font-family:'JetBrains Mono', monospace;font-size:.72rem;padding:0 .3rem;margin-left:.3rem;border:none;background:transparent;cursor:pointer;color:inherit;}
+  .risk-fb-btn:hover{text-decoration:underline;}
+  .risk-fb-btn:disabled{opacity:.35;cursor:default;text-decoration:none;}
+  .risk-fb-note{font-size:.62rem;margin-left:.3rem;opacity:.7;}
+  .risk-heading{font-size:.78rem;color:var(--ink-soft);margin-top:1rem;margin-bottom:.35rem;font-family:'JetBrains Mono', monospace;}
+  .risk-summary{font-size:.82rem;}
+  .risk-summary .risk-line{color:var(--risk-high-c);margin-bottom:.25rem;}
+  .risk-summary .risk-line.medium{color:var(--risk-med-c);}
+  .risk-summary .none{color:var(--ink-soft);font-style:italic;}
+
+  .ref-table{margin-top:2.5rem;font-size:.82rem;}
+  .ref-table summary{cursor:pointer;color:var(--ink-soft);font-family:'JetBrains Mono', monospace;font-size:.78rem;}
+  .ref-row{display:grid;grid-template-columns:3em 1fr;gap:.6rem;padding:.4rem 0;border-bottom:1px solid var(--line);}
+  .ref-row .ref-op{font-family:'JetBrains Mono', monospace;font-weight:600;}
+  .ref-row .ref-ex{color:var(--ink-soft);font-family:'JetBrains Mono', monospace;font-size:.78rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <a href="index.html" style="font-family:'JetBrains Mono', monospace; font-size:.75rem; color:var(--ink-soft); text-decoration:none;" id="back-link">← le survivant — histoire d'une thèse</a>
+      <h1 id="title">Analyseur d'opérations logico-discursives — Grize, Charconnet 1999</h1>
+      <p class="sub" id="subtitle">Repérer les opérations logico-discursives et suivre la progression des classes-objets, thème / phore</p>
+    </div>
+    <div class="lang-toggle">
+      <button id="lang-fr" class="on">FR</button>
+      <button id="lang-en">EN</button>
+    </div>
+  </div>
+
+  <div class="notions">
+    <div class="notion-field theme">
+      <label id="lbl-theme">Notion thème (ex. /GENOME/)</label>
+      <input id="notion-theme" value="/GENOME/">
+    </div>
+    <div class="notion-field phore">
+      <label id="lbl-phore">Notion phore (ex. /TEXTE/)</label>
+      <input id="notion-phore" value="/TEXTE/">
+    </div>
+  </div>
+
+  <textarea id="input-text">Cet enchaînement constitue le texte de notre génome, un texte écrit avec quatre lettres, les bases nucléotidiques. Imaginez une encyclopédie microscopique de plusieurs centaines de milliers de pages composées d'un texte étrange.</textarea>
+  <div class="row">
+    <button class="primary" id="btn-analyze">Analyser</button>
+    <button class="detect" id="btn-detect">Détecter les marqueurs</button>
+    <button class="detect" id="btn-ai-detect">Analyser avec l'IA</button>
+    <button class="ghost" id="btn-reset">Réinitialiser</button>
+    <button class="example-link" id="btn-example">charger un autre extrait</button>
+  </div>
+  <p class="instructions" id="instr">Cliquez un ou plusieurs mots contigus pour les sélectionner et leur attribuer une opération. Les marqueurs détectés automatiquement sont soulignés en pointillés — cliquez dessus pour préremplir l'opération suggérée.</p>
+  <p class="ai-status" id="ai-status"></p>
+
+  <div class="stage" id="stage-render">
+    <div class="legend" id="legend">
+      <span><span class="sw cand"></span>marqueur détecté</span>
+      <span><span class="sw th"></span>thème</span>
+      <span><span class="sw ph"></span>phore</span>
+      <span><span class="sw" style="background:var(--risk-high-bg)"></span><span id="legend-risk-high">risque élevé</span></span>
+      <span><span class="sw" style="background:var(--risk-med-bg)"></span><span id="legend-risk-med">risque moyen</span></span>
+    </div>
+    <div class="rendered" id="rendered"></div>
+
+    <div class="tagbar" id="tagbar">
+      <div class="sel-preview" id="sel-label">Sélection : <b id="sel-text">—</b></div>
+      <div class="choice-group">
+        <div class="label" id="lbl-classe">Classe-objet</div>
+        <div class="chips" id="chips-classe">
+          <div class="chip" data-classe="theme" id="chip-theme">thème</div>
+          <div class="chip" data-classe="phore" id="chip-phore">phore</div>
+        </div>
+      </div>
+      <div class="choice-group">
+        <div class="label" id="lbl-op">Opération</div>
+        <div id="chips-op"></div>
+        <div class="op-desc" id="op-desc"></div>
+      </div>
+      <div class="row">
+        <button class="primary" id="btn-tag">Ajouter au faisceau</button>
+        <button class="ghost" id="btn-clear-sel">Annuler la sélection</button>
+      </div>
+    </div>
+
+    <div class="classes">
+      <div class="cl-col theme">
+        <h2 id="h-theme">Classe-objet 1 — thème</h2>
+        <div class="notion-name" id="name-theme-out">/GENOME/</div>
+        <div id="list-theme"></div>
+        <div class="set-line" id="set-theme"></div>
+        <div class="risk-heading" id="risk-heading-theme">Facteurs de risque</div>
+        <div class="risk-summary" id="risk-theme"></div>
+      </div>
+      <div class="cl-col phore">
+        <h2 id="h-phore">Classe-objet 2 — phore</h2>
+        <div class="notion-name" id="name-phore-out">/TEXTE/</div>
+        <div id="list-phore"></div>
+        <div class="set-line" id="set-phore"></div>
+      </div>
+    </div>
+  </div>
+
+  <details class="ref-table">
+    <summary id="ref-summary">Tableau de référence des 14 opérations</summary>
+    <div id="ref-body"></div>
+  </details>
+
+  <details class="ref-table">
+    <summary id="journal-summary">Journal d'apprentissage</summary>
+    <div id="journal-body"></div>
+    <div class="row"><button class="ghost" id="btn-clear-journal">Effacer le journal</button></div>
+  </details>
+</div>
+
+<script>
+const STRINGS = {
+  fr: {
+    title:'Analyseur d\u2019opérations logico-discursives — Grize, Charconnet 1999',
+    subtitle:'Repérer les opérations logico-discursives et suivre la progression des classes-objets, thème / phore',
+    lblTheme:'Notion thème (ex. /GENOME/)', lblPhore:'Notion phore (ex. /TEXTE/)',
+    backLink:'\u2190 le survivant — histoire d\u2019une thèse',
+    analyze:'Analyser', detect:'Détecter les marqueurs', reset:'Réinitialiser',
+    aiDetect:'Analyser avec l\u2019IA', aiLoading:'Analyse en cours\u2026', aiError:'Échec de l\u2019analyse — réessayez.', aiNone:'Aucune suggestion retournée.',
+    aiSrc:'IA', aiNotionApplied:'Notions thème/phore suggérées par l\u2019IA — modifiables ci-dessus.',
+    aiAutoAdded:'{n} opération(s) ajoutée(s) au faisceau ci-dessous.',
+    example:'charger un autre extrait',
+    instr:'Cliquez un ou plusieurs mots contigus pour les sélectionner et leur attribuer une opération. Les marqueurs détectés automatiquement sont soulignés en pointillés — cliquez dessus pour préremplir l\u2019opération suggérée.',
+    legendCand:'marqueur détecté', legendTh:'thème', legendPh:'phore',
+    selLabel:'Sélection :', classe:'Classe-objet', theme:'thème', phore:'phore',
+    op:'Opération', addBtn:'Ajouter au faisceau', clearBtn:'Annuler la sélection',
+    hTheme:'Classe-objet 1 — thème', hPhore:'Classe-objet 2 — phore',
+    emptyHint:'Aucun élément ajouté',
+    defaultTheme:'/GENOME/', defaultPhore:'/TEXTE/',
+    legendRiskHigh:'risque élevé', legendRiskMed:'risque moyen',
+    riskSectionTitle:'Facteurs de risque',
+    riskAssim:'assimilation métaphorique non marquée (ρ3 sans comparatif)',
+    riskCoHyper:'généralisation non justifiée (θ5 sans marqueur causal)',
+    riskEvacuation:'vidage référentiel (θ4 : contenu de l\u2019objet évacué)',
+    riskUnstable:'faisceau instable : propriétés non recoupées par un synonyme (θ0)',
+    riskNone:'Aucun facteur de risque détecté',
+    refSummary:'Tableau de référence des 14 opérations',
+    famG:'Opérations sur les faisceaux', famR:'Opérations sur les domaines', famT:'Opérations de pure désignation',
+    journalSummary:'Journal d\u2019apprentissage', journalClear:'Effacer le journal',
+    journalCorrections:'Corrections (suggestion \u2192 choix retenu)',
+    journalRiskFeedback:'Retours sur les facteurs de risque',
+    journalEmpty:'Aucune donnée enregistrée pour l\u2019instant',
+    feedbackPertinent:'marquer comme pertinent', feedbackFauxPositif:'marquer comme faux positif',
+    feedbackLogged:'noté'
+  },
+  en: {
+    title:'Logico-discursive operations analyzer — Grize, Charconnet 1999',
+    subtitle:'Spotting logico-discursive operations and tracking the progression of object-classes, theme / phore',
+    lblTheme:'Theme notion (e.g. /GENOME/)', lblPhore:'Phore notion (e.g. /TEXT/)',
+    backLink:'\u2190 the survivor — the story of a thesis',
+    analyze:'Analyze', detect:'Detect markers', reset:'Reset',
+    aiDetect:'Analyze with AI', aiLoading:'Analyzing\u2026', aiError:'Analysis failed — try again.', aiNone:'No suggestions returned.',
+    aiSrc:'AI', aiNotionApplied:'Theme/phore notions suggested by AI — editable above.',
+    aiAutoAdded:'{n} operation(s) added to the bundle below.',
+    example:'load another excerpt',
+    instr:'Click one or more contiguous words to select them and assign an operation. Automatically detected markers are underlined with dashes — click one to pre-fill the suggested operation.',
+    legendCand:'detected marker', legendTh:'theme', legendPh:'phore',
+    selLabel:'Selection:', classe:'Object-class', theme:'theme', phore:'phore',
+    op:'Operation', addBtn:'Add to bundle', clearBtn:'Clear selection',
+    hTheme:'Object-class 1 — theme', hPhore:'Object-class 2 — phore',
+    emptyHint:'No element added yet',
+    defaultTheme:'/GENOME/', defaultPhore:'/TEXT/',
+    legendRiskHigh:'high risk', legendRiskMed:'medium risk',
+    riskSectionTitle:'Risk factors',
+    riskAssim:'unmarked metaphorical assimilation (\u03c13 with no comparative marker)',
+    riskCoHyper:'unjustified generalization (\u03b85 with no causal marker)',
+    riskEvacuation:'referential evacuation (\u03b84: object emptied of its content)',
+    riskUnstable:'unstable bundle: properties never corroborated by a synonym (\u03b80)',
+    riskNone:'No risk factors detected',
+    refSummary:'Reference table of the 14 operations',
+    famG:'Operations on bundles', famR:'Operations on domains', famT:'Pure designation operations',
+    journalSummary:'Learning journal', journalClear:'Clear journal',
+    journalCorrections:'Corrections (suggested \u2192 kept)',
+    journalRiskFeedback:'Risk factor feedback',
+    journalEmpty:'No data logged yet',
+    feedbackPertinent:'mark as relevant', feedbackFauxPositif:'mark as false positive',
+    feedbackLogged:'logged'
+  }
+};
+
+const FAM_CLASS = { '\u03b3':'g', '\u03c1':'r', '\u03b8':'t' };
+
+const OPS = {
+  fr: [
+    {id:'\u03b31', family:'\u03b3', desc:'Elle introduit une partie de l\u2019objet.', example:'\u03b31{maison} \u21a6 {maison, porte}'},
+    {id:'\u03b32', family:'\u03b3', desc:'Elle marque un processus interne à l\u2019objet, reposant sur les schèmes d\u2019action du faisceau.', example:'\u03b32{eau} \u21a6 {eau, évaporation}'},
+    {id:'\u03b33', family:'\u03b3', desc:'Elle marque un état de l\u2019objet, une de ses façons d\u2019apparaître, ou une de ses qualités.', example:'\u03b33{eau} \u21a6 {eau, pression}'},
+    {id:'\u03b34', family:'\u03b3', desc:'Elle marque une dimension, une pluralité, une extension.', example:'\u03b34{difficulté} \u21a6 {difficulté, quantité de difficultés}'},
+    {id:'\u03c11', family:'\u03c1', desc:'Elle introduit une composante du domaine.', example:'\u03c11{auto} \u21a6 {auto, prix}'},
+    {id:'\u03c12', family:'\u03c1', desc:'Elle renvoie à un processus qui réclame un agent extérieur.', example:'\u03c12{auto} \u21a6 {auto, entretien}'},
+    {id:'\u03c13', family:'\u03c1', desc:'Dans une métaphore, elle introduit un élément du phore.', example:'\u03c13{lune} \u21a6 {lune, faucille d\u2019or}'},
+    {id:'\u03c14', family:'\u03c1', desc:'Elle sert à délimiter l\u2019extension de l\u2019objet.', example:'\u03c14{vins} \u21a6 {vins, vins de France}'},
+    {id:'\u03b80', family:'\u03b8', desc:'Elle introduit un synonyme.', example:'\u03b80{question} \u21a6 {question, interrogation}'},
+    {id:'\u03b81', family:'\u03b8', desc:'Elle introduit un terme du genre prochain.', example:'\u03b81{table} \u21a6 {table, meuble}'},
+    {id:'\u03b82', family:'\u03b8', desc:'Elle présente l\u2019objet sous un autre angle ; elle est de l\u2019ordre de la métonymie.', example:'\u03b82{ministère des Affaires étrangères} \u21a6 {ministère des Affaires étrangères, Quai d\u2019Orsay}'},
+    {id:'\u03b83', family:'\u03b8', desc:'Elle implique un jugement de valeur.', example:'\u03b83{père} \u21a6 {père, héros au sourire si doux}'},
+    {id:'\u03b84', family:'\u03b8', desc:'Elle vide l\u2019objet de son contenu.', example:'\u03b84{Mac} \u21a6 {Mac, machin}'},
+    {id:'\u03b85', family:'\u03b8', desc:'Elle introduit le nom d\u2019un co-hyperonyme commun au phore et au thème.', example:'\u03b85{langage, code génétique} \u21a6 {langage, code génétique, systèmes de communication}'}
+  ],
+  en: [
+    {id:'\u03b31', family:'\u03b3', desc:'Introduces a part of the object.', example:'\u03b31{house} \u21a6 {house, door}'},
+    {id:'\u03b32', family:'\u03b3', desc:'Marks an internal process of the object, drawing on the bundle\u2019s own action schemes.', example:'\u03b32{water} \u21a6 {water, evaporation}'},
+    {id:'\u03b33', family:'\u03b3', desc:'Marks a state of the object, a way it appears, or one of its qualities.', example:'\u03b33{water} \u21a6 {water, pressure}'},
+    {id:'\u03b34', family:'\u03b3', desc:'Marks a dimension, a plurality, an extension.', example:'\u03b34{difficulty} \u21a6 {difficulty, amount of difficulties}'},
+    {id:'\u03c11', family:'\u03c1', desc:'Introduces a component of the domain.', example:'\u03c11{car} \u21a6 {car, price}'},
+    {id:'\u03c12', family:'\u03c1', desc:'Points to a process that requires an external agent.', example:'\u03c12{car} \u21a6 {car, maintenance}'},
+    {id:'\u03c13', family:'\u03c1', desc:'In a metaphor, introduces an element of the phore.', example:'\u03c13{moon} \u21a6 {moon, golden sickle}'},
+    {id:'\u03c14', family:'\u03c1', desc:'Delimits the extension of the object.', example:'\u03c14{wines} \u21a6 {wines, wines of France}'},
+    {id:'\u03b80', family:'\u03b8', desc:'Introduces a synonym.', example:'\u03b80{question} \u21a6 {question, query}'},
+    {id:'\u03b81', family:'\u03b8', desc:'Introduces a term from the next genus up.', example:'\u03b81{table} \u21a6 {table, piece of furniture}'},
+    {id:'\u03b82', family:'\u03b8', desc:'Presents the object from another angle; a metonymy.', example:'\u03b82{Ministry of Foreign Affairs} \u21a6 {Ministry of Foreign Affairs, the Quai d\u2019Orsay}'},
+    {id:'\u03b83', family:'\u03b8', desc:'Implies a value judgment.', example:'\u03b83{father} \u21a6 {father, hero with the gentle smile}'},
+    {id:'\u03b84', family:'\u03b8', desc:'Empties the object of its content.', example:'\u03b84{Mac} \u21a6 {Mac, that thing}'},
+    {id:'\u03b85', family:'\u03b8', desc:'Introduces the name of a co-hyperonym shared by phore and theme.', example:'\u03b85{language, genetic code} \u21a6 {language, genetic code, communication systems}'}
+  ]
+};
+
+const EXAMPLES = {
+  fr: [
+    "Cet enchaînement constitue le texte de notre génome, un texte écrit avec quatre lettres, les bases nucléotidiques. Imaginez une encyclopédie microscopique de plusieurs centaines de milliers de pages composées d'un texte étrange.",
+    "Toute protéine est codée par un gène, c'est à dire une portion d'ADN. Lors de son expression ce dernier est copié, ou transcrit, en une molécule complémentaire d'ARN messager qui est ensuite traduite en protéine.",
+    "La séquence de l'ADN, l'ordre des nucléotides correspond exactement à l'enchaînement des acides aminés, de la même manière qu'à l'ordre de lecture des mots d'une phrase correspond un sens précis.",
+    "Il existe encore de nombreux segments d'ADN sans fonction qui ne sont que les traces de l'évolution, fixées dans le génome. Ce reste constitue probablement des archives inutilisées actuellement.",
+    "En 2023, un avocat new-yorkais a déposé des conclusions citant des affaires judiciaires inventées par ChatGPT. Ces fausses affaires semblaient réelles, avec des noms et des numéros de dossier plausibles. Ce truc a été soumis à un tribunal fédéral, et l'avocat a été sanctionné.",
+    "Le chatbot d'Air Canada a annoncé à un client un tarif de deuil spécial, remboursable après coup. Cette politique n'existait pas. Quand la compagnie a refusé de l'honorer, le client a porté l'affaire devant un tribunal — et a gagné.",
+    "Lors d'une démonstration publique, le chatbot Bard de Google a affirmé que le télescope James Webb avait pris les toutes premières images d'une exoplanète. Cette affirmation était fausse — des télescopes terrestres l'avaient déjà fait des années plus tôt. L'erreur a été repérée presque aussitôt et a contribué à une chute du cours de l'action Google ce jour-là."
+  ],
+  en: [
+    "This strand makes up the text of our genome, a text written with four letters, the nucleotide bases. Picture a microscopic encyclopedia of several hundred thousand pages composed of a strange text.",
+    "Every protein is encoded by a gene, that is a portion of DNA. During its expression this gene is copied, or transcribed, into a complementary messenger RNA molecule which is then translated into a protein.",
+    "The order of the nucleotides corresponds exactly to the sequence of amino acids, just as the reading order of the words in a sentence corresponds to a precise meaning.",
+    "There are still many segments of DNA with no known function, which are merely traces of evolution fixed within the genome. This remainder is probably a kind of unused archive.",
+    "In 2023, a New York attorney filed a legal brief citing court cases invented by ChatGPT. The fake cases looked real, complete with plausible names and docket numbers. This thing was submitted to a federal court, and the attorney faced sanctions.",
+    "Air Canada's chatbot told a customer about a special bereavement fare that could be claimed after the fact. No such policy existed. When the airline refused to honor it, the customer took the case to a tribunal — and won.",
+    "During a public demo, Google's Bard chatbot claimed the James Webb Space Telescope took the very first pictures of a planet outside our solar system. This claim was false — ground-based telescopes had already done so years earlier. The error was noticed almost immediately and contributed to a drop in Google's stock price that day."
+  ]
+};
+
+const PATTERNS = {
+  fr: [
+    {re:'\\b(composé(?:e|s|es)? de|constitué(?:e|s|es)? de|comport(?:e|ant)|fait partie de)\\b', op:'\u03b31', tag:'partie'},
+    {re:'\\b(transcrit(?:e|s|es)?|copié(?:e|s|es)?|traduit(?:e|s|es)?|codé(?:e|s|es)?|exprimé(?:e|s|es)?)\\b', op:'\u03b32', tag:'processus'},
+    {re:'\\b(des milliers de|des millions de|de nombreux|de nombreuses|des dizaines de|plusieurs centaines de)\\b', op:'\u03b34', tag:'extension'},
+    {re:'\\b(comme|tel que|telle que|de même que|ainsi que|à la manière de)\\b', op:'\u03c13', tag:'comparatif'},
+    {re:'\\b(c\'est-à-dire|autrement dit|à savoir)\\b', op:'\u03b80', tag:'reprise'},
+    {re:'\\b(une sorte de|un type de|une forme de)\\b', op:'\u03b81', tag:'genre'},
+    {re:'\\b(truc|machin)\\b', op:'\u03b84', tag:'vidage'},
+    {re:'\\b(peut être vu comme|peut être considéré comme)\\b', op:'\u03b85', tag:'cohyperonyme'}
+  ],
+  en: [
+    {re:'\\b(made up of|composed of|consists? of|contains?|part of)\\b', op:'\u03b31', tag:'part'},
+    {re:'\\b(transcribed|copied|translated|encoded|coded|expressed|processed)\\b', op:'\u03b32', tag:'process'},
+    {re:'\\b(thousands of|millions of|several|many|dozens of|hundreds of)\\b', op:'\u03b34', tag:'extension'},
+    {re:'\\b(like|as if|just as|similar to|analogous to)\\b', op:'\u03c13', tag:'comparative'},
+    {re:'\\b(that is|in other words|namely|i\\.e\\.)\\b', op:'\u03b80', tag:'reprise'},
+    {re:'\\b(a kind of|a type of|a sort of)\\b', op:'\u03b81', tag:'genus'},
+    {re:'\\b(that thing|this thing|whatchamacallit)\\b', op:'\u03b84', tag:'evacuation'},
+    {re:'\\b(can be seen as|can be viewed as|can be regarded as)\\b', op:'\u03b85', tag:'cohyperonym'}
+  ]
+};
+
+const JUSTIF = {
+  fr:'\\b(parce que|car|puisque|donc|du fait que|dans la mesure où)\\b',
+  en:'\\b(because|since|therefore|given that|as a result|due to)\\b'
+};
+const COMP_TAG = { fr:'comparatif', en:'comparative' };
+
+const REAL_EXAMPLES_FR = [
+  { op:'\u03c13', text:'/CYBERESPACE/ ... on assimile le cyberespace à un espace que l\u2019on peut explorer', set:'\u03c13{le cyberespace} \u21a6 {le cyberespace, navigation}' },
+  { op:'\u03b31', text:'ce texte de notre génome, un texte écrit avec quatre lettres, les bases nucléotidiques', set:'\u03b31{texte} \u21a6 {texte, lettres}' },
+  { op:'\u03b85', text:'l\u2019ADN et le texte sont tous deux considérés comme relevant d\u2019un même ordre', set:'\u03b85{ADN, Texte} \u21a6 {ADN, texte, enchaînement}' },
+  { op:'\u03b85', text:'le code génétique et le code linguistique appartiennent à un même ensemble', set:'\u03b85{code génétique, code linguistique} \u21a6 {code génétique, code linguistique, systèmes de communication}' },
+  { op:'\u03c13', text:'il existe encore de nombreux segments d\u2019ADN sans fonction, qui ne sont que les traces de l\u2019évolution', set:'\u03c13{segments d\u2019ADN sans fonction} \u21a6 {segments d\u2019ADN sans fonction, traces de l\u2019évolution}' }
+];
+
+let lang = 'fr';
+let tokens = [];
+let offsets = [];
+let selected = new Set();
+let entries = { theme: [], phore: [] };
+let pendingClasse = null;
+let pendingOp = null;
+let candidates = [];
+let exampleIdx = 0;
+let sentences = [];
+let fullTextGlobal = '';
+let currentCandidateOp = null;
+let learningLog = { corrections: [], riskFeedback: [] };
+let aiCandidates = [];
+let aiPendingRisk = null;
+let aiLoading = false;
+
+const renderedEl = document.getElementById('rendered');
+const tagbarEl = document.getElementById('tagbar');
+const selTextEl = document.getElementById('sel-text');
+const chipsOpEl = document.getElementById('chips-op');
+const opDescEl = document.getElementById('op-desc');
+
+function applyStrings(){
+  const s = STRINGS[lang];
+  document.getElementById('title').textContent = s.title;
+  document.getElementById('subtitle').textContent = s.subtitle;
+  document.getElementById('back-link').textContent = s.backLink;
+  document.getElementById('lbl-theme').textContent = s.lblTheme;
+  document.getElementById('lbl-phore').textContent = s.lblPhore;
+  document.getElementById('btn-analyze').textContent = s.analyze;
+  document.getElementById('btn-detect').textContent = s.detect;
+  document.getElementById('btn-ai-detect').textContent = s.aiDetect;
+  document.getElementById('btn-reset').textContent = s.reset;
+  document.getElementById('btn-example').textContent = s.example;
+  document.getElementById('instr').textContent = s.instr;
+  document.getElementById('sel-label').childNodes[0].textContent = s.selLabel + ' ';
+  document.getElementById('lbl-classe').textContent = s.classe;
+  document.getElementById('chip-theme').textContent = s.theme;
+  document.getElementById('chip-phore').textContent = s.phore;
+  document.getElementById('lbl-op').textContent = s.op;
+  document.getElementById('btn-tag').textContent = s.addBtn;
+  document.getElementById('btn-clear-sel').textContent = s.clearBtn;
+  document.getElementById('h-theme').textContent = s.hTheme;
+  document.getElementById('h-phore').textContent = s.hPhore;
+  const legend = document.getElementById('legend').children;
+  legend[0].lastChild.textContent = s.legendCand;
+  legend[1].lastChild.textContent = s.legendTh;
+  legend[2].lastChild.textContent = s.legendPh;
+  document.getElementById('legend-risk-high').textContent = s.legendRiskHigh;
+  document.getElementById('legend-risk-med').textContent = s.legendRiskMed;
+  document.getElementById('risk-heading-theme').textContent = s.riskSectionTitle;
+  document.getElementById('ref-summary').textContent = s.refSummary;
+  document.getElementById('journal-summary').textContent = s.journalSummary;
+  document.getElementById('btn-clear-journal').textContent = s.journalClear;
+  buildOpChips();
+  buildRefTable();
+  renderJournal();
+}
+
+async function loadLog(){
+  try{
+    const res = await window.storage.get('grize-log', false);
+    if(res && res.value){ learningLog = JSON.parse(res.value); }
+  }catch(e){ /* no log yet */ }
+  renderJournal();
+}
+
+async function saveLog(){
+  try{
+    await window.storage.set('grize-log', JSON.stringify(learningLog), false);
+  }catch(e){ console.error('storage error', e); }
+}
+
+function renderJournal(){
+  const box = document.getElementById('journal-body');
+  if(!box) return;
+  box.innerHTML = '';
+  if(learningLog.corrections.length === 0 && learningLog.riskFeedback.length === 0){
+    box.innerHTML = '<p class="empty-hint">' + STRINGS[lang].journalEmpty + '</p>';
+    return;
+  }
+  if(learningLog.corrections.length){
+    const h = document.createElement('div');
+    h.className = 'risk-heading';
+    h.textContent = STRINGS[lang].journalCorrections + ' (' + learningLog.corrections.length + ')';
+    box.appendChild(h);
+    const counts = {};
+    learningLog.corrections.forEach(c=>{
+      const k = c.suggested + ' \u2192 ' + c.actual;
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    Object.entries(counts).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+      const line = document.createElement('div');
+      line.className = 'ref-ex';
+      line.textContent = k + '  \u00d7' + v;
+      box.appendChild(line);
+    });
+  }
+  if(learningLog.riskFeedback.length){
+    const h2 = document.createElement('div');
+    h2.className = 'risk-heading';
+    h2.textContent = STRINGS[lang].journalRiskFeedback + ' (' + learningLog.riskFeedback.length + ')';
+    box.appendChild(h2);
+    const counts = {};
+    learningLog.riskFeedback.forEach(f=>{
+      const k = f.riskLabel + ' — ' + f.judgment;
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    Object.entries(counts).forEach(([k,v])=>{
+      const line = document.createElement('div');
+      line.className = 'ref-ex';
+      line.textContent = k + '  \u00d7' + v;
+      box.appendChild(line);
+    });
+  }
+}
+
+document.getElementById('btn-clear-journal').addEventListener('click', async ()=>{
+  learningLog = { corrections: [], riskFeedback: [] };
+  await saveLog();
+  renderJournal();
+});
+
+function switchLang(l){
+  lang = l;
+  document.getElementById('lang-fr').classList.toggle('on', l==='fr');
+  document.getElementById('lang-en').classList.toggle('on', l==='en');
+  const themeInput = document.getElementById('notion-theme');
+  const phoreInput = document.getElementById('notion-phore');
+  if(themeInput.value === STRINGS.fr.defaultTheme || themeInput.value === STRINGS.en.defaultTheme){
+    themeInput.value = STRINGS[l].defaultTheme;
+  }
+  if(phoreInput.value === STRINGS.fr.defaultPhore || phoreInput.value === STRINGS.en.defaultPhore){
+    phoreInput.value = STRINGS[l].defaultPhore;
+  }
+  document.getElementById('input-text').value = EXAMPLES[l][0];
+  exampleIdx = 0;
+  applyStrings();
+}
+document.getElementById('lang-fr').addEventListener('click', ()=>switchLang('fr'));
+document.getElementById('lang-en').addEventListener('click', ()=>switchLang('en'));
+
+function buildOpChips(){
+  chipsOpEl.innerHTML = '';
+  const s = STRINGS[lang];
+  const famNames = { '\u03b3': s.famG, '\u03c1': s.famR, '\u03b8': s.famT };
+  ['\u03b3','\u03c1','\u03b8'].forEach(fam=>{
+    const group = document.createElement('div');
+    group.className = 'op-family-group';
+    const label = document.createElement('div');
+    label.className = 'op-family-label ' + FAM_CLASS[fam];
+    label.textContent = famNames[fam];
+    group.appendChild(label);
+    const row = document.createElement('div');
+    row.className = 'chips';
+    OPS[lang].filter(o=>o.family===fam).forEach(op=>{
+      const c = document.createElement('div');
+      c.className = 'chip';
+      c.dataset.op = op.id;
+      c.textContent = op.id;
+      c.addEventListener('click', ()=>{
+        pendingOp = op.id;
+        [...chipsOpEl.querySelectorAll('.chip')].forEach(x=>x.classList.remove('on'));
+        c.classList.add('on');
+        opDescEl.textContent = op.desc + '  ' + op.example;
+      });
+      row.appendChild(c);
+    });
+    group.appendChild(row);
+    chipsOpEl.appendChild(group);
+  });
+}
+
+function buildRefTable(){
+  const body = document.getElementById('ref-body');
+  body.innerHTML = '';
+  OPS[lang].forEach(op=>{
+    const row = document.createElement('div');
+    row.className = 'ref-row';
+    const opEl = document.createElement('div');
+    opEl.className = 'ref-op';
+    opEl.textContent = op.id;
+    const descEl = document.createElement('div');
+    const d = document.createElement('div');
+    d.textContent = op.desc;
+    const ex = document.createElement('div');
+    ex.className = 'ref-ex';
+    ex.textContent = op.example;
+    descEl.appendChild(d);
+    descEl.appendChild(ex);
+    row.appendChild(opEl);
+    row.appendChild(descEl);
+    body.appendChild(row);
+  });
+}
+
+document.getElementById('chips-classe').addEventListener('click', (e)=>{
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  pendingClasse = chip.dataset.classe;
+  [...document.getElementById('chips-classe').children].forEach(x=>x.classList.remove('on','theme-on','phore-on'));
+  chip.classList.add('on', pendingClasse === 'theme' ? 'theme-on' : 'phore-on');
+});
+
+function tokenize(text){ return text.split(/(\s+)/).filter(t=>t.length>0); }
+
+function computeOffsets(){
+  offsets = [];
+  let pos = 0;
+  tokens.forEach(t=>{ offsets.push(pos); pos += t.length; });
+}
+
+function computeSentences(text){
+  const sents = [];
+  const re = /[^.!?]*[.!?]+|[^.!?]+$/g;
+  let m;
+  while((m = re.exec(text)) !== null){
+    if(m[0].length === 0){ re.lastIndex++; continue; }
+    sents.push({start:m.index, end:m.index+m[0].length});
+  }
+  if(sents.length === 0) sents.push({start:0, end:text.length});
+  return sents;
+}
+function sentenceIdxForOffset(off){
+  for(let i=0;i<sentences.length;i++){
+    if(off >= sentences[i].start && off < sentences[i].end) return i;
+  }
+  return sentences.length - 1;
+}
+function sentenceIdxForToken(i){ return sentenceIdxForOffset(offsets[i]); }
+function sentenceText(idx){ const s = sentences[idx]; return s ? fullTextGlobal.slice(s.start, s.end) : ''; }
+function sentenceHasPattern(idx, regexStr){
+  if(!regexStr) return false;
+  const re = new RegExp(regexStr, 'i');
+  return re.test(sentenceText(idx));
+}
+
+function evaluateEntryRisk(entry){
+  const risks = [];
+  const sentIdx = sentenceIdxForToken(entry.indices[0]);
+  if(entry.op === '\u03c13'){
+    const compPattern = PATTERNS[lang].find(p => p.tag === COMP_TAG[lang]);
+    const marked = compPattern && sentenceHasPattern(sentIdx, compPattern.re);
+    if(!marked) risks.push({level:'high', label: STRINGS[lang].riskAssim});
+  }
+  if(entry.op === '\u03b85'){
+    const justified = sentenceHasPattern(sentIdx, JUSTIF[lang]);
+    if(!justified) risks.push({level:'medium', label: STRINGS[lang].riskCoHyper});
+  }
+  if(entry.op === '\u03b84'){
+    risks.push({level:'high', label: STRINGS[lang].riskEvacuation});
+  }
+  return risks;
+}
+
+function evaluateClassRisk(){
+  const risks = [];
+  const propCount = entries.theme.filter(e => e.op[0]==='\u03b3' || e.op[0]==='\u03c1').length;
+  const synoCount = entries.theme.filter(e => e.op === '\u03b80').length;
+  if(propCount >= 3 && synoCount === 0){
+    risks.push({level:'medium', label: STRINGS[lang].riskUnstable});
+  }
+  return risks;
+}
+
+function detectCandidates(fullText){
+  const found = [];
+  PATTERNS[lang].forEach(p=>{
+    const re = new RegExp(p.re, 'gi');
+    let m;
+    while((m = re.exec(fullText)) !== null){
+      found.push({start:m.index, end:m.index+m[0].length, op:p.op, tag:p.tag});
+      if(m[0].length===0) re.lastIndex++;
+    }
+  });
+  found.sort((a,b)=>a.start-b.start);
+  const claimed = [];
+  found.forEach(f=>{
+    const overlaps = claimed.some(c=> f.start < c.end && f.end > c.start);
+    if(!overlaps) claimed.push(f);
+  });
+  const withTokens = claimed.map(f=>{
+    const idxs = [];
+    tokens.forEach((t,i)=>{
+      const tStart = offsets[i], tEnd = tStart + t.length;
+      if(/^\s+$/.test(t)) return;
+      if(tStart < f.end && tEnd > f.start) idxs.push(i);
+    });
+    return { indices: idxs, op: f.op, tag: f.tag };
+  }).filter(c=>c.indices.length>0);
+  return withTokens;
+}
+
+function buildAISystemPrompt(){
+  const opsList = OPS[lang].map(o => `${o.id} : ${o.desc} (ex. ${o.example})`).join('\n');
+  const fewshot = REAL_EXAMPLES_FR.map(e => `- "${e.text}" \u2192 ${e.set}`).join('\n');
+  return [
+    'Tu es un analyste appliquant le système des opérations de discours de Jean-Blaise Grize (logique naturelle), dans la formalisation de Jean Charconnet (thèse, 1999, Paris VIII).',
+    'Voici les 14 opérations et leurs définitions exactes :',
+    opsList,
+    '',
+    'Exemples authentiques tirés du corpus de cette thèse (analogie génome/texte, ADN/morse, cyberespace/navigation) :',
+    fewshot,
+    '',
+    'On te donne un texte à analyser, éventuellement accompagné de notions thème/phore déjà fixées par l\u2019utilisateur.',
+    'Étape 1 — détection des notions : propose "theme_suggestion" et "phore_suggestion", deux courtes étiquettes (1 à 4 mots, style "/NOTION/") identifiant respectivement l\u2019objet principal dont parle le texte (thème) et, s\u2019il y a une analogie ou une comparaison, la notion à laquelle il est comparé (phore). Si le texte ne présente aucune analogie thème/phore nette (ex. un fait divers, un rapport, un cas juridique), utilise l\u2019objet principal du texte comme "theme_suggestion" et une étiquette générique proche (ex. la même notion, ou vide) comme "phore_suggestion".',
+    'Étape 2 — repérage des opérations : pour chaque passage significatif du texte, identifie :',
+    '(a) "text" : l\u2019extrait exact, copié mot pour mot du texte fourni (1 à 8 mots) ;',
+    '(b) "op" : l\u2019identifiant exact d\u2019une des 14 opérations (ex. "\u03c13", "\u03b85") ;',
+    '(c) "classe" : "theme" ou "phore" selon la classe-objet concernée ;',
+    '(d) "risk" : si l\u2019opération est \u03c13 (métaphore), \u03b85 (co-hyperonyme) ou \u03b84 (vidage référentiel), évalue si elle est contextuellement justifiée dans le passage ou si elle constitue une affirmation non fondée (comme dans une hallucination de modèle de langage). Si un risque existe, renvoie {"level":"high"|"medium","label":"<courte explication>"}, sinon null.',
+    '',
+    'Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, sans balises markdown, au format exact :',
+    '{"theme_suggestion":"...","phore_suggestion":"...","operations":[{"text":"...","op":"...","classe":"theme|phore","risk":{"level":"high","label":"..."}|null}]}',
+    'Limite-toi aux 8 passages les plus significatifs dans "operations".'
+  ].join('\n');
+}
+
+function findTokenRangeForText(snippet){
+  if(!snippet) return null;
+  let idx = fullTextGlobal.indexOf(snippet);
+  if(idx === -1) idx = fullTextGlobal.toLowerCase().indexOf(snippet.toLowerCase());
+  if(idx === -1) return null;
+  const end = idx + snippet.length;
+  const idxs = [];
+  tokens.forEach((t,i)=>{
+    const tStart = offsets[i], tEnd = tStart + t.length;
+    if(/^\s+$/.test(t)) return;
+    if(tStart < end && tEnd > idx) idxs.push(i);
+  });
+  return idxs.length ? idxs : null;
+}
+
+function applyNotionSuggestion(themeSuggestion, phoreSuggestion){
+  const themeInput = document.getElementById('notion-theme');
+  const phoreInput = document.getElementById('notion-phore');
+  const isDefaultTheme = themeInput.value === STRINGS.fr.defaultTheme || themeInput.value === STRINGS.en.defaultTheme || themeInput.value.trim() === '';
+  const isDefaultPhore = phoreInput.value === STRINGS.fr.defaultPhore || phoreInput.value === STRINGS.en.defaultPhore || phoreInput.value.trim() === '';
+  let applied = false;
+  if(isDefaultTheme && themeSuggestion){ themeInput.value = themeSuggestion; applied = true; }
+  if(isDefaultPhore && phoreSuggestion){ phoreInput.value = phoreSuggestion; applied = true; }
+  document.getElementById('name-theme-out').textContent = themeInput.value || '/THEME/';
+  document.getElementById('name-phore-out').textContent = phoreInput.value || '/PHORE/';
+  renderClasses();
+  return applied;
+}
+
+async function analyzeWithAI(){
+  if(tokens.length === 0 || aiLoading) return;
+  aiLoading = true;
+  let lastErrorDetail = '';
+  updateAIStatus();
+  try{
+    const notionTheme = document.getElementById('notion-theme').value || '/THEME/';
+    const notionPhore = document.getElementById('notion-phore').value || '/PHORE/';
+    const systemPrompt = buildAISystemPrompt();
+    const userPrompt = `Thème (fixé par l'utilisateur, peut être ajusté si besoin) : ${notionTheme}\nPhore (fixé par l'utilisateur, peut être ajusté si besoin) : ${notionPhore}\n\nTexte à analyser :\n${fullTextGlobal}`;
+    const fetchPromise = fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role:'user', content: userPrompt }]
+      })
+    });
+    const timeoutPromise = new Promise((_, reject)=>{
+      setTimeout(()=> reject(new Error('délai dépassé (25s)')), 25000);
+    });
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    if(!response.ok){
+      const errText = await response.text().catch(()=>'');
+      throw new Error('HTTP ' + response.status + ' ' + errText.slice(0,200));
+    }
+    const data = await response.json();
+    if(data.error){
+      throw new Error(data.error.message || JSON.stringify(data.error).slice(0,200));
+    }
+    const raw = (data.content || []).map(b => b.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    let parsed;
+    try{
+      parsed = JSON.parse(clean);
+    }catch(parseErr){
+      throw new Error('JSON invalide reçu : ' + clean.slice(0,150));
+    }
+    const opsArr = Array.isArray(parsed) ? parsed : (parsed.operations || []);
+    let notionApplied = false;
+    if(!Array.isArray(parsed) && (parsed.theme_suggestion || parsed.phore_suggestion)){
+      notionApplied = applyNotionSuggestion(parsed.theme_suggestion, parsed.phore_suggestion);
+    }
+    aiCandidates = opsArr.map(p=>{
+      const idxs = findTokenRangeForText(p.text);
+      if(!idxs) return null;
+      return { indices: idxs, op: p.op, classe: p.classe, risk: p.risk || null };
+    }).filter(Boolean);
+    let addedCount = 0;
+    aiCandidates.forEach(c=>{
+      if(findTagFor(c.indices[0])) return;
+      const cls = c.classe === 'phore' ? 'phore' : 'theme';
+      const text = c.indices.map(i=>tokens[i]).join('');
+      entries[cls].push({ op:c.op, text:text, indices:c.indices, aiRisk: c.risk || null });
+      addedCount++;
+    });
+    aiLoading = false;
+    updateAIStatus(false, notionApplied, null, addedCount);
+    renderTokens();
+    renderClasses();
+  }catch(e){
+    aiLoading = false;
+    lastErrorDetail = e && e.message ? e.message : String(e);
+    updateAIStatus(true, false, lastErrorDetail);
+  }
+}
+
+function updateAIStatus(isError, notionApplied, detail, addedCount){
+  const el = document.getElementById('ai-status');
+  if(!el) return;
+  if(aiLoading){ el.textContent = STRINGS[lang].aiLoading; return; }
+  if(isError){ el.textContent = STRINGS[lang].aiError + (detail ? ' (' + detail + ')' : ''); return; }
+  let msg = '';
+  if(addedCount){ msg = STRINGS[lang].aiAutoAdded.replace('{n}', addedCount); }
+  if(notionApplied){ msg = (msg ? msg + ' ' : '') + STRINGS[lang].aiNotionApplied; }
+  el.textContent = msg;
+}
+
+function aiCandidateFor(idx){ return aiCandidates.find(c=>c.indices.includes(idx)); }
+
+function selectAICandidate(cand){
+  selected = new Set(cand.indices);
+  pendingOp = cand.op;
+  currentCandidateOp = cand.op;
+  aiPendingRisk = cand.risk || null;
+  if(cand.classe === 'theme' || cand.classe === 'phore'){
+    pendingClasse = cand.classe;
+  }
+  updateSelectionUI();
+  renderTokens();
+  [...chipsOpEl.querySelectorAll('.chip')].forEach(x=>{ x.classList.toggle('on', x.dataset.op === cand.op); });
+  const opDef = OPS[lang].find(o=>o.id===cand.op);
+  if(opDef) opDescEl.textContent = opDef.desc + '  ' + opDef.example;
+  if(pendingClasse){
+    [...document.getElementById('chips-classe').children].forEach(x=>{
+      x.classList.toggle('on', x.dataset.classe === pendingClasse);
+      x.classList.toggle('theme-on', x.dataset.classe === pendingClasse && pendingClasse==='theme');
+      x.classList.toggle('phore-on', x.dataset.classe === pendingClasse && pendingClasse==='phore');
+    });
+  }
+}
+
+function renderTokens(){
+  renderedEl.innerHTML = '';
+  tokens.forEach((t, i)=>{
+    if(/^\s+$/.test(t)){ renderedEl.appendChild(document.createTextNode(t)); return; }
+    const span = document.createElement('span');
+    span.className = 'tok';
+    span.dataset.idx = i;
+    span.textContent = t;
+    if(selected.has(i)) span.classList.add('sel');
+    const tagged = findTagFor(i);
+    if(tagged) span.classList.add('tag-' + tagged.classe);
+    const cand = candidateFor(i);
+    const aiCand = aiCandidateFor(i);
+    if(aiCand && !tagged){
+      span.classList.add('cand-ai');
+      if(aiCand.indices[0] === i){ span.classList.add('first'); span.dataset.opLabel = aiCand.op; }
+      span.addEventListener('click', (e)=>{ e.stopPropagation(); selectAICandidate(aiCand); });
+    } else if(cand && !tagged){
+      span.classList.add('cand');
+      if(cand.indices[0] === i){ span.classList.add('first'); span.dataset.opLabel = cand.op; }
+      span.addEventListener('click', (e)=>{ e.stopPropagation(); selectCandidate(cand); });
+    } else {
+      span.addEventListener('click', ()=> toggleSelect(i));
+    }
+    renderedEl.appendChild(span);
+  });
+}
+
+function candidateFor(idx){ return candidates.find(c=>c.indices.includes(idx)); }
+
+function selectCandidate(cand){
+  selected = new Set(cand.indices);
+  pendingOp = cand.op;
+  currentCandidateOp = cand.op;
+  updateSelectionUI();
+  renderTokens();
+  [...chipsOpEl.querySelectorAll('.chip')].forEach(x=>{ x.classList.toggle('on', x.dataset.op === cand.op); });
+  const opDef = OPS[lang].find(o=>o.id===cand.op);
+  if(opDef) opDescEl.textContent = opDef.desc + '  ' + opDef.example;
+}
+
+function findTagFor(idx){
+  for(const cls of ['theme','phore']){
+    for(const e of entries[cls]){ if(e.indices.includes(idx)) return {classe:cls}; }
+  }
+  return null;
+}
+
+function toggleSelect(i){
+  currentCandidateOp = null;
+  if(selected.has(i)) selected.delete(i); else selected.add(i);
+  updateSelectionUI();
+  renderTokens();
+}
+
+function updateSelectionUI(){
+  if(selected.size === 0){ tagbarEl.classList.remove('active'); return; }
+  tagbarEl.classList.add('active');
+  const sorted = [...selected].sort((a,b)=>a-b);
+  const text = sorted.map(i=>tokens[i]).join('');
+  selTextEl.textContent = '\u00ab ' + text + ' \u00bb';
+}
+
+document.getElementById('btn-clear-sel').addEventListener('click', ()=>{
+  selected.clear(); pendingClasse = null; pendingOp = null; currentCandidateOp = null;
+  [...document.getElementById('chips-classe').children].forEach(x=>x.classList.remove('on','theme-on','phore-on'));
+  [...chipsOpEl.querySelectorAll('.chip')].forEach(x=>x.classList.remove('on'));
+  opDescEl.textContent = '';
+  updateSelectionUI();
+  renderTokens();
+});
+
+document.getElementById('btn-tag').addEventListener('click', ()=>{
+  if(selected.size === 0 || !pendingClasse || !pendingOp){
+    tagbarEl.style.borderColor = '#A32D2D';
+    setTimeout(()=>{ tagbarEl.style.borderColor = ''; }, 900);
+    return;
+  }
+  const sorted = [...selected].sort((a,b)=>a-b);
+  const text = sorted.map(i=>tokens[i]).join('');
+  if(currentCandidateOp && currentCandidateOp !== pendingOp){
+    learningLog.corrections.push({suggested: currentCandidateOp, actual: pendingOp, text: text, ts: Date.now()});
+    saveLog();
+  }
+  entries[pendingClasse].push({op:pendingOp, text:text, indices:sorted, aiRisk: aiPendingRisk});
+  selected.clear(); pendingClasse = null; pendingOp = null; currentCandidateOp = null; aiPendingRisk = null;
+  [...document.getElementById('chips-classe').children].forEach(x=>x.classList.remove('on','theme-on','phore-on'));
+  [...chipsOpEl.querySelectorAll('.chip')].forEach(x=>x.classList.remove('on'));
+  opDescEl.textContent = '';
+  updateSelectionUI();
+  renderTokens();
+  renderClasses();
+});
+
+function renderClasses(){
+  const s = STRINGS[lang];
+  ['theme','phore'].forEach(cls=>{
+    const listEl = document.getElementById('list-' + cls);
+    const setEl = document.getElementById('set-' + cls);
+    const list = entries[cls];
+    if(list.length === 0){
+      listEl.innerHTML = '<p class="empty-hint">' + s.emptyHint + '</p>';
+      setEl.textContent = '';
+      if(cls === 'theme') document.getElementById('risk-theme').innerHTML = '';
+      return;
+    }
+    listEl.innerHTML = '';
+    const allRisks = [];
+    list.forEach(e=>{
+      const row = document.createElement('div');
+      row.className = 'entry';
+      const opBadge = document.createElement('span');
+      opBadge.className = 'op-badge';
+      opBadge.textContent = e.op;
+      const txt = document.createElement('span');
+      txt.textContent = e.text;
+      row.appendChild(opBadge);
+      row.appendChild(txt);
+      if(cls === 'theme'){
+        const risks = evaluateEntryRisk(e);
+        risks.forEach(r=>{
+          const badge = document.createElement('span');
+          badge.className = 'risk-badge ' + r.level;
+          const labelSpan = document.createElement('span');
+          labelSpan.textContent = r.label;
+          badge.appendChild(labelSpan);
+          const fbOk = document.createElement('button');
+          fbOk.className = 'risk-fb-btn';
+          fbOk.textContent = '\u2713';
+          fbOk.title = STRINGS[lang].feedbackPertinent;
+          const fbNo = document.createElement('button');
+          fbNo.className = 'risk-fb-btn';
+          fbNo.textContent = '\u2717';
+          fbNo.title = STRINGS[lang].feedbackFauxPositif;
+          const note = document.createElement('span');
+          note.className = 'risk-fb-note';
+          const logFeedback = (judgment)=>{
+            learningLog.riskFeedback.push({riskLabel:r.label, entryOp:e.op, entryText:e.text, judgment, ts:Date.now()});
+            saveLog();
+            fbOk.disabled = true; fbNo.disabled = true;
+            note.textContent = STRINGS[lang].feedbackLogged;
+            renderJournal();
+          };
+          fbOk.addEventListener('click', ()=>logFeedback('pertinent'));
+          fbNo.addEventListener('click', ()=>logFeedback('faux-positif'));
+          badge.appendChild(fbOk);
+          badge.appendChild(fbNo);
+          badge.appendChild(note);
+          row.appendChild(badge);
+          allRisks.push(r);
+        });
+        if(e.aiRisk){
+          const aiBadge = document.createElement('span');
+          aiBadge.className = 'risk-badge ai-src ' + e.aiRisk.level;
+          aiBadge.textContent = STRINGS[lang].aiSrc + ' · ' + e.aiRisk.label;
+          row.appendChild(aiBadge);
+        }
+      }
+      listEl.appendChild(row);
+    });
+    const notionField = document.getElementById(cls === 'theme' ? 'notion-theme' : 'notion-phore').value || (cls === 'theme' ? '/THEME/' : '/PHORE/');
+    const setNotation = '{' + notionField.replace(/\//g,'') + ', ' + list.map(e=>e.text).join(', ') + '}';
+    setEl.textContent = setNotation;
+    if(cls === 'theme'){
+      allRisks.push(...evaluateClassRisk());
+      const riskBox = document.getElementById('risk-theme');
+      if(allRisks.length === 0){
+        riskBox.innerHTML = '<div class="none">' + STRINGS[lang].riskNone + '</div>';
+      } else {
+        const counts = {}; const levels = {};
+        allRisks.forEach(r=>{ counts[r.label] = (counts[r.label] || 0) + 1; levels[r.label] = r.level; });
+        riskBox.innerHTML = '';
+        Object.keys(counts).forEach(label=>{
+          const line = document.createElement('div');
+          line.className = 'risk-line' + (levels[label] === 'medium' ? ' medium' : '');
+          line.textContent = label + ' (' + counts[label] + ')';
+          riskBox.appendChild(line);
+        });
+      }
+    }
+  });
+}
+
+document.getElementById('btn-analyze').addEventListener('click', ()=>{
+  const text = document.getElementById('input-text').value.trim();
+  if(!text) return;
+  tokens = tokenize(text);
+  computeOffsets();
+  fullTextGlobal = text;
+  sentences = computeSentences(fullTextGlobal);
+  selected.clear();
+  candidates = [];
+  entries = { theme: [], phore: [] };
+  document.getElementById('name-theme-out').textContent = document.getElementById('notion-theme').value || '/THEME/';
+  document.getElementById('name-phore-out').textContent = document.getElementById('notion-phore').value || '/PHORE/';
+  document.getElementById('stage-render').classList.add('active');
+  renderTokens();
+  updateSelectionUI();
+  renderClasses();
+});
+
+document.getElementById('btn-detect').addEventListener('click', ()=>{
+  if(tokens.length === 0) return;
+  const fullText = tokens.join('');
+  candidates = detectCandidates(fullText);
+  renderTokens();
+});
+
+document.getElementById('btn-ai-detect').addEventListener('click', ()=>{
+  analyzeWithAI();
+});
+
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  tokens = []; offsets = []; selected.clear(); candidates = []; aiCandidates = [];
+  entries = { theme: [], phore: [] };
+  fullTextGlobal = ''; sentences = [];
+  document.getElementById('stage-render').classList.remove('active');
+  document.getElementById('input-text').value = '';
+});
+
+document.getElementById('btn-example').addEventListener('click', ()=>{
+  exampleIdx = (exampleIdx + 1) % EXAMPLES[lang].length;
+  document.getElementById('input-text').value = EXAMPLES[lang][exampleIdx];
+});
+
+applyStrings();
+loadLog();
+</script>
+</body>
+</html>
